@@ -9,16 +9,10 @@ from KineNet import KineNet, KNData
 
 def main():
     # Defaults arguments
-    dtype = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] is not None else "real"
     parser = argparse.ArgumentParser()
-    if dtype == "synth":
-        parser.add_argument("--data-type", type=str, default="synth")
-        parser.add_argument("--joint-coord", type=str, default="../data/test/synth/")
-        parser.add_argument("--joint-states", type=str, default="../data/test/synth/")
-    else:
-        parser.add_argument("--data-type", type=str, default="real")
-        parser.add_argument("--joint-coord", type=str, default="../data/test/set6_output.npy")
-        parser.add_argument("--joint-states", type=str, default="../data/test/set6_slu/")
+    parser.add_argument("--data-type", type=str, default="synth")
+    parser.add_argument("--joint-coord", type=str, default="../data/test/synth/")
+    parser.add_argument("--joint-states", type=str, default="../data/test/synth/")
     parser.add_argument("--robot-path", type=str, default="../data/urdf/mh5l.urdf")
     parser.add_argument("--robot", type=str, default="mh5l")
     parser.add_argument("--batch-size", type=int, default=100)

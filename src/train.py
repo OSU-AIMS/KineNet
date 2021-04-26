@@ -13,6 +13,14 @@ from KineNet import KineNet, KNData
 
 
 def get_data_loaders(args):
+    """
+    Builds splits validation and training data from KNData loader. Ensures loaders are shuffled and randomly
+    sampled.
+    :param args: Useful arguments declared in main body
+    :type args: argparse structure
+    :return: loaders for both train and validation data
+    :rtype: tuple of torch tensors - dims = ([(batch) x (joints) x 3], [(batch) x (joints - T)])
+    """
     dataset = KNData(args.data_type, args.robot_path, args.joint_coord, args.joint_states)
     train_size = int(len(dataset) * args.train_val_ratio)
     train_dataset = Subset(dataset, list(range(0, train_size)))
@@ -23,12 +31,14 @@ def get_data_loaders(args):
 
 
 def train(manager, args, model, device, train_loader, results):
+    """
+    Model train step.
+    """
     while not manager.stop_trigger:
         model.train()
         loss_fn = nn.MSELoss()
         for data, target in train_loader:
             with manager.run_iteration(step_optimizers=["main"]):
-                print(target)
                 data, target = data.to(device), target.to(device)
                 output = model(data.float())
                 loss = loss_fn(output, target)
@@ -37,6 +47,9 @@ def train(manager, args, model, device, train_loader, results):
 
 
 def validate(args, model, device, data, target, results):
+    """
+    Model validation step.
+    """
     model.eval()
     loss_fn = nn.MSELoss()
     data, target = data.to(device), target.to(device)
@@ -51,6 +64,11 @@ def validate(args, model, device, data, target, results):
 
 
 def plot_loss(df):
+    """
+    Plots training results by joint per epoch.
+    :param df: validation data results
+    :type df: pandas dataframe
+    """
     figure, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True, figsize=(12, 5))
     for i in range(len(df.columns)):
         axes[int(np.floor(i / 3)), i % 3].plot(df[df.columns[i]])
@@ -69,16 +87,18 @@ def main():
     parser.add_argument("--robot-path", type=str, default="../data/urdf/mh5l.urdf")
     parser.add_argument("--robot", type=str, default="mh5l")
     parser.add_argument("--train-val-ratio", type=float, default=0.8)
-    parser.add_argument("--batch-size", type=int, default=5000)
-    parser.add_argument("--epochs", type=int, default=1000)
-    parser.add_argument("--lr", type=float, default=0.02)
+    parser.add_argument("--batch-size", type=int, default=1000)
+    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--lr", type=float, default=0.01)
     parser.add_argument("--save-model", action="store_true", default=True)
     args, unknown = parser.parse_known_args()
+
+    # Define torch device based upon GPU availability
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = KineNet()
+    # Assign device to model
     model.to(device)
     train_loader, val_loader = get_data_loaders(args)
-    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     trigger = ppe.training.triggers.EarlyStoppingTrigger(
         check_trigger=(3, "epoch"), monitor="val/loss"
